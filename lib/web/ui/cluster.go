@@ -40,6 +40,8 @@ type Cluster struct {
 	NodeCount int `json:"nodeCount"`
 	// PublicURL is this cluster public URL (its first available proxy URL)
 	PublicURL string `json:"publicURL"`
+	// AuthVersion is the cluster auth's service version
+	AuthVersion string `json:"authVersion"`
 }
 
 var log = logrus.WithFields(logrus.Fields{
@@ -76,12 +78,24 @@ func NewClusters(remoteClusters []reversetunnel.RemoteSite) ([]Cluster, error) {
 			return nil, trace.Wrap(err)
 		}
 
+		authServers, err := clt.GetAuthServers()
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+
+		authVersion := ""
+		if len(authServers) > 0 {
+			// use the first auth server
+			authVersion = authServers[0].GetTeleportVersion()
+		}
+
 		clusters = append(clusters, Cluster{
 			Name:          rclsr.GetName(),
 			LastConnected: rclsr.GetLastConnected(),
 			Status:        rclsr.GetStatus(),
 			NodeCount:     len(nodes),
 			PublicURL:     publicURL,
+			AuthVersion:   authVersion,
 		})
 	}
 
